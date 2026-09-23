@@ -184,7 +184,7 @@ class _PuzzleScreenState extends ConsumerState<PuzzleScreen> {
               Expanded(
                 child: LayoutBuilder(
                   builder: (context, constraints) {
-                    const aspectRatio = 1.06;
+                    const aspectRatio = 1.24;
                     final width = math.min(
                       constraints.maxWidth - 4,
                       (constraints.maxHeight - 12) * aspectRatio,

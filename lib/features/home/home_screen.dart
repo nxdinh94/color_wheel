@@ -53,7 +53,7 @@ class HomeScreen extends ConsumerWidget {
                   final size = constraints.maxWidth.clamp(0.0, 320.0);
                   return SizedBox(
                     width: size,
-                    height: size / 1.06,
+                    height: size / 1.24,
                     child: CustomPaint(
                       painter: WheelPainter(
                         colors: colors,

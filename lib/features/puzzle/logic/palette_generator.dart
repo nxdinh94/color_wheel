@@ -12,20 +12,35 @@ class HslColorPaletteGenerator implements ColorPaletteGenerator {
   @override
   List<List<Color>> generate(LevelConfig level) {
     final p = level.palette;
-    final palette = List.generate(level.sectorCount, (sector) {
-      final hue = normalizeDegrees(
-        p.baseHue + p.hueRange * sector / level.sectorCount,
+    return List.generate(level.ringCount, (ring) {
+      final progress = level.ringCount <= 1
+          ? 0.0
+          : ring / (level.ringCount - 1);
+      final saturation =
+          p.innerSaturation +
+          (p.outerSaturation - p.innerSaturation) * progress;
+      final lightness =
+          p.innerLightness + (p.outerLightness - p.innerLightness) * progress;
+      return List.unmodifiable(
+        List.generate(level.sectorCount, (sector) {
+          final hue = normalizeDegrees(
+            p.baseHue + p.hueRange * sector / level.sectorCount,
+          );
+          // Keep the whole wheel monochromatic while retaining a visible
+          // shade for each sector so rotating a ring remains observable.
+          final shadeProgress = level.sectorCount <= 1
+              ? 0.5
+              : sector / (level.sectorCount - 1);
+          final shadeOffset = (shadeProgress - 0.5) * 0.22;
+          final shadedLightness = (lightness + shadeOffset).clamp(0.05, 0.95);
+          return HSLColor.fromAHSL(
+            1,
+            hue,
+            saturation,
+            shadedLightness,
+          ).toColor();
+        }),
       );
-      return HSLColor.fromAHSL(
-        1,
-        hue,
-        (p.innerSaturation + p.outerSaturation) / 2,
-        (p.innerLightness + p.outerLightness) / 2,
-      ).toColor();
     });
-    return List.generate(
-      level.ringCount,
-      (_) => List<Color>.unmodifiable(palette),
-    );
   }
 }

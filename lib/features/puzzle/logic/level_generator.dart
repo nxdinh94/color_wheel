@@ -16,11 +16,11 @@ class LevelGenerator {
     final rng = _StableRandom(seed ^ (number * 0x9e3779b9));
     final palette = PaletteConfig(
       baseHue: rng.nextInt(360).toDouble(),
-      hueRange: 360,
+      hueRange: 0,
       innerLightness: number <= 15 ? 0.32 : 0.35,
       outerLightness: number <= 15 ? 0.68 : 0.65,
       innerSaturation: number <= 30 ? 0.64 : 0.58,
-      outerSaturation: number <= 30 ? 0.84 : 0.77,
+      outerSaturation: number <= 30 ? 0.98 : 0.94,
     );
     late List<int> offsets;
     do {
@@ -57,11 +57,11 @@ class LevelGenerator {
       sectorCount: 12,
       palette: const PaletteConfig(
         baseHue: 0,
-        hueRange: 360,
+        hueRange: 0,
         innerLightness: 0.29,
         outerLightness: 0.66,
         innerSaturation: 0.66,
-        outerSaturation: 0.88,
+        outerSaturation: 0.98,
       ),
       shuffleOffsets: List.unmodifiable(offsets),
     );
@@ -96,7 +96,8 @@ class LevelValidator {
     }
     final p = level.palette;
     if (!p.baseHue.isFinite ||
-        p.hueRange != 360 ||
+        p.hueRange < 0 ||
+        p.hueRange > 360 ||
         360 / level.sectorCount < 30 ||
         p.innerSaturation < 0 ||
         p.innerSaturation > 1 ||

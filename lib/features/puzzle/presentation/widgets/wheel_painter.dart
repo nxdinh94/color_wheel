@@ -20,23 +20,17 @@ class WheelPainter extends CustomPainter {
   static const double centerFraction = 0.16;
   static const double arcInnerFraction = 0.18;
   static const double arcHalfSpan = math.pi * 0.285;
+  static const double ringGap = 0.1;
 
   static WheelGeometry arcGeometry(Size size) {
-    final verticalScale = size.width == 0
-        ? 1.0
-        : size.height / (size.width / 1.24);
     final outerRadius = size.width * 0.63;
-    final center = Offset(
-      size.width / 2,
-      size.height - size.width * 0.125 * verticalScale,
-    );
+    final center = Offset(size.width / 2, size.height - size.width * 0.125);
     return WheelGeometry(
       center: center,
       outerRadius: outerRadius,
       innerRadius: outerRadius * arcInnerFraction,
       startAngle: -math.pi / 2 - arcHalfSpan,
       endAngle: -math.pi / 2 + arcHalfSpan,
-      verticalScale: verticalScale,
     );
   }
 
@@ -50,7 +44,8 @@ class WheelPainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = math.min(size.width, size.height) / 2 - 2;
     final count = colors.length;
-    final width = radius * (1 - centerFraction) / count;
+    final width =
+        (radius * (1 - centerFraction) - ringGap * (count - 1)) / count;
     final sectorAngle = 2 * math.pi / colors.first.length;
     final fill = Paint()..isAntiAlias = true;
     final separator = Paint()
@@ -58,9 +53,10 @@ class WheelPainter extends CustomPainter {
       ..color = const Color(0x66F8F6F2)
       ..style = PaintingStyle.stroke
       ..strokeWidth = separatorWidth;
+    final startColor = _startColor;
 
     for (var ring = 0; ring < count; ring++) {
-      final inner = radius * centerFraction + ring * width;
+      final inner = radius * centerFraction + ring * (width + ringGap);
       final outer = inner + width;
       final outerRect = Rect.fromCircle(center: center, radius: outer);
       final innerRect = Rect.fromCircle(center: center, radius: inner);
@@ -90,30 +86,23 @@ class WheelPainter extends CustomPainter {
     }
     canvas.drawCircle(
       center,
-      radius * centerFraction - 0.5,
-      Paint()..color = const Color(0xFFF7F5F0),
-    );
-    canvas.drawCircle(
-      center,
-      radius * centerFraction - 7,
-      Paint()
-        ..color = const Color(0xFFD8D2C9)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 0.8,
+      radius * centerFraction * 0.78,
+      Paint()..color = startColor,
     );
   }
 
   void _paintArcs(Canvas canvas, Size size) {
     final geometry = arcGeometry(size);
     final ringCount = colors.length;
-    final step = (geometry.outerRadius - geometry.innerRadius) / ringCount;
-    canvas.save();
-    canvas.translate(geometry.center.dx, geometry.center.dy);
-    canvas.scale(1, geometry.verticalScale);
-    canvas.translate(-geometry.center.dx, -geometry.center.dy);
+    final step =
+        (geometry.outerRadius -
+            geometry.innerRadius -
+            ringGap * (ringCount - 1)) /
+        ringCount;
 
     for (var ring = 0; ring < ringCount; ring++) {
-      final trackRadius = geometry.innerRadius + (ring + 0.5) * step;
+      final trackRadius =
+          geometry.innerRadius + ring * (step + ringGap) + step / 2;
       final rect = Rect.fromCircle(
         center: geometry.center,
         radius: trackRadius,
@@ -123,18 +112,15 @@ class WheelPainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = step
         ..strokeCap = StrokeCap.butt;
-      final sectionSweep = geometry.endAngle - geometry.startAngle;
       final sectorAngle = 2 * math.pi / colors[ring].length;
-      final displayRotation = rotations[ring] / sectorAngle * sectionSweep;
 
       for (var sector = 0; sector < colors[ring].length; sector++) {
-        final baseStart =
-            geometry.startAngle + displayRotation + sector * sectionSweep;
+        final baseStart = -math.pi / 2 + rotations[ring] + sector * sectorAngle;
         for (var turn = -2; turn <= 2; turn++) {
-          final start = baseStart + turn * colors[ring].length * sectionSweep;
-          final end = start + sectionSweep;
-          final visibleStart = math.max(start, geometry.startAngle);
-          final visibleEnd = math.min(end, geometry.endAngle);
+          final segmentStart = baseStart + turn * 2 * math.pi;
+          final segmentEnd = segmentStart + sectorAngle;
+          final visibleStart = math.max(segmentStart, geometry.startAngle);
+          final visibleEnd = math.min(segmentEnd, geometry.endAngle);
           if (visibleEnd <= visibleStart) continue;
           canvas.drawArc(
             rect,
@@ -144,6 +130,27 @@ class WheelPainter extends CustomPainter {
             segmentPaint..color = colors[ring][sector],
           );
         }
+      }
+
+      final capRadius = step / 2;
+      for (final angle in [geometry.startAngle, geometry.endAngle]) {
+        final relative =
+            (angle - (-math.pi / 2 + rotations[ring])) % (2 * math.pi);
+        final positive = relative < 0 ? relative + 2 * math.pi : relative;
+        final sector = (positive / sectorAngle).floor() % colors[ring].length;
+        final capCenter =
+            geometry.center +
+            Offset(
+              math.cos(angle) * trackRadius,
+              math.sin(angle) * trackRadius,
+            );
+        canvas.drawCircle(
+          capCenter,
+          capRadius,
+          Paint()
+            ..isAntiAlias = true
+            ..color = colors[ring][sector],
+        );
       }
     }
 
@@ -164,22 +171,15 @@ class WheelPainter extends CustomPainter {
         );
       }
     }
-    canvas.restore();
+    final hubRadius = geometry.innerRadius * 0.58;
+    canvas.drawCircle(geometry.center, hubRadius, Paint()..color = _startColor);
+  }
 
-    final hubRadius = geometry.innerRadius * 0.72;
-    canvas.drawCircle(
-      geometry.center,
-      hubRadius,
-      Paint()..color = const Color(0xFFF7F5F0),
-    );
-    canvas.drawCircle(
-      geometry.center,
-      hubRadius - 6,
-      Paint()
-        ..color = const Color(0xFFD8D2C9)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 0.8,
-    );
+  Color get _startColor {
+    if (colors.isNotEmpty && colors.first.isNotEmpty) {
+      return colors.first.first;
+    }
+    return const Color(0xFFF7F5F0);
   }
 
   @override
@@ -198,7 +198,6 @@ class WheelGeometry {
     required this.innerRadius,
     required this.startAngle,
     required this.endAngle,
-    required this.verticalScale,
   });
 
   final Offset center;
@@ -206,5 +205,4 @@ class WheelGeometry {
   final double innerRadius;
   final double startAngle;
   final double endAngle;
-  final double verticalScale;
 }
