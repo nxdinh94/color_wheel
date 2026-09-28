@@ -16,7 +16,8 @@ class LevelGenerator {
     final rng = _StableRandom(seed ^ (number * 0x9e3779b9));
     final palette = PaletteConfig(
       baseHue: rng.nextInt(360).toDouble(),
-      hueRange: 0,
+      // Movable rings sample different hues from this shared family.
+      hueRange: 110,
       innerLightness: number <= 15 ? 0.32 : 0.35,
       outerLightness: number <= 15 ? 0.68 : 0.65,
       innerSaturation: number <= 30 ? 0.64 : 0.58,
@@ -57,7 +58,7 @@ class LevelGenerator {
       sectorCount: 12,
       palette: const PaletteConfig(
         baseHue: 0,
-        hueRange: 0,
+        hueRange: 110,
         innerLightness: 0.29,
         outerLightness: 0.66,
         innerSaturation: 0.66,

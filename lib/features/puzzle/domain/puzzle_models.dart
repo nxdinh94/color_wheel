@@ -30,6 +30,12 @@ class LevelConfig {
   final int sectorCount;
   final PaletteConfig palette;
   final List<int> shuffleOffsets;
+
+  /// The outermost ring is the stationary reference ring.
+  int get movableRingCount => ringCount - 1;
+
+  bool isRingMovable(int ringIndex) =>
+      ringIndex >= 0 && ringIndex < movableRingCount;
 }
 
 class RingState {

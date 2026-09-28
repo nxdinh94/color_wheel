@@ -143,8 +143,10 @@ class _PuzzleScreenState extends ConsumerState<PuzzleScreen> {
   Widget build(BuildContext context) {
     final number = _sourceLevel.number;
     final alignedRings = _puzzle.rings
+        .take(_puzzle.level.movableRingCount)
         .where((ring) => ring.isSolved(_puzzle.level.sectorCount))
         .length;
+    final movableRingCount = _puzzle.level.movableRingCount;
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -248,7 +250,7 @@ class _PuzzleScreenState extends ConsumerState<PuzzleScreen> {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  'RINGS ALIGNED  $alignedRings / ${_puzzle.rings.length}',
+                  'RINGS ALIGNED  $alignedRings / $movableRingCount',
                   style: TextStyle(
                     fontSize: 11,
                     letterSpacing: 1.2,
@@ -258,6 +260,26 @@ class _PuzzleScreenState extends ConsumerState<PuzzleScreen> {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.touch_app_outlined,
+                    size: 14,
+                    color: Color(0xFF8A857D),
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    'Rotate the inner $movableRingCount rings',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      letterSpacing: 0.3,
+                      color: Color(0xFF8A857D),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
               if (_isComplete)

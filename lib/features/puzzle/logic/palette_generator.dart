@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../domain/puzzle_models.dart';
@@ -12,6 +14,17 @@ class HslColorPaletteGenerator implements ColorPaletteGenerator {
   @override
   List<List<Color>> generate(LevelConfig level) {
     final p = level.palette;
+    final random = math.Random(_seedFor(level));
+    final ringHues = List.generate(level.ringCount, (ring) {
+      // Keep the outer ring as the stable reference. Movable rings get a
+      // different, reproducible hue from the same family around baseHue.
+      if (ring == level.ringCount - 1 || p.hueRange == 0) {
+        return normalizeDegrees(p.baseHue);
+      }
+      final familyOffset = (random.nextDouble() - 0.5) * p.hueRange;
+      return normalizeDegrees(p.baseHue + familyOffset);
+    });
+
     return List.generate(level.ringCount, (ring) {
       final progress = level.ringCount <= 1
           ? 0.0
@@ -23,10 +36,7 @@ class HslColorPaletteGenerator implements ColorPaletteGenerator {
           p.innerLightness + (p.outerLightness - p.innerLightness) * progress;
       return List.unmodifiable(
         List.generate(level.sectorCount, (sector) {
-          final hue = normalizeDegrees(
-            p.baseHue + p.hueRange * sector / level.sectorCount,
-          );
-          // Keep the whole wheel monochromatic while retaining a visible
+          // Keep each ring in one color family while retaining a visible
           // shade for each sector so rotating a ring remains observable.
           final shadeProgress = level.sectorCount <= 1
               ? 0.5
@@ -35,7 +45,7 @@ class HslColorPaletteGenerator implements ColorPaletteGenerator {
           final shadedLightness = (lightness + shadeOffset).clamp(0.05, 0.95);
           return HSLColor.fromAHSL(
             1,
-            hue,
+            ringHues[ring],
             saturation,
             shadedLightness,
           ).toColor();
@@ -43,4 +53,14 @@ class HslColorPaletteGenerator implements ColorPaletteGenerator {
       );
     });
   }
+
+  int _seedFor(LevelConfig level) {
+    var seed = level.number * 0x9e3779b9;
+    seed ^= level.ringCount * 0x85ebca6b;
+    seed ^= level.sectorCount * 0xc2b2ae35;
+    seed ^= _pHueSeed(level.palette.baseHue);
+    return seed & 0x7fffffff;
+  }
+
+  int _pHueSeed(double hue) => hue.round() * 0x27d4eb2d;
 }

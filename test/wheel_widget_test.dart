@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +10,7 @@ import 'package:hue_wheel/features/puzzle/domain/puzzle_models.dart';
 import 'package:hue_wheel/features/puzzle/logic/level_generator.dart';
 import 'package:hue_wheel/features/puzzle/logic/palette_generator.dart';
 import 'package:hue_wheel/features/puzzle/presentation/widgets/color_wheel.dart';
+import 'package:hue_wheel/features/puzzle/presentation/widgets/wheel_painter.dart';
 
 class _MemoryProgressRepository implements ProgressRepository {
   AppProgress value = const AppProgress();
@@ -19,6 +21,63 @@ class _MemoryProgressRepository implements ProgressRepository {
 }
 
 void main() {
+  testWidgets('incoming ring color sweeps in from the drag edge', (
+    tester,
+  ) async {
+    const size = Size(300, 300);
+    const colors = [
+      [Colors.red, Colors.blue, Colors.green],
+    ];
+    final geometry = WheelPainter.arcGeometry(size);
+    final trackRadius = (geometry.innerRadius + geometry.outerRadius) / 2;
+    final span = geometry.endAngle - geometry.startAngle;
+
+    Future<Color> colorAt(double rotation, double position) async {
+      final recorder = ui.PictureRecorder();
+      WheelPainter(
+        colors: colors,
+        rotations: [rotation],
+        repaint: const AlwaysStoppedAnimation<double>(0),
+        arcDisplay: true,
+      ).paint(Canvas(recorder), size);
+      final image = await recorder.endRecording().toImage(300, 300);
+      final angle = geometry.startAngle + span * position;
+      final x = (geometry.center.dx + math.cos(angle) * trackRadius).round();
+      final y = (geometry.center.dy + math.sin(angle) * trackRadius).round();
+      final data = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+      final index = (y * 300 + x) * 4;
+      final color = Color.fromARGB(
+        data!.getUint8(index + 3),
+        data.getUint8(index),
+        data.getUint8(index + 1),
+        data.getUint8(index + 2),
+      );
+      image.dispose();
+      return color;
+    }
+
+    await tester.runAsync(() async {
+      final halfTurn = math.pi / 3;
+      expect(
+        (await colorAt(halfTurn, 0.25)).toARGB32(),
+        Colors.green.toARGB32(),
+      );
+      expect((await colorAt(halfTurn, 0.75)).toARGB32(), Colors.red.toARGB32());
+      expect(
+        (await colorAt(-halfTurn, 0.25)).toARGB32(),
+        Colors.red.toARGB32(),
+      );
+      expect(
+        (await colorAt(-halfTurn, 0.75)).toARGB32(),
+        Colors.blue.toARGB32(),
+      );
+      expect(
+        (await colorAt(2 * halfTurn, 0.5)).toARGB32(),
+        Colors.green.toARGB32(),
+      );
+    });
+  });
+
   testWidgets(
     'a grabbed ring follows without jumping and commits one sector move',
     (tester) async {

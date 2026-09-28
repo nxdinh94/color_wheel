@@ -113,31 +113,60 @@ class WheelPainter extends CustomPainter {
         ..strokeWidth = step
         ..strokeCap = StrokeCap.butt;
       final sectorAngle = 2 * math.pi / colors[ring].length;
+      final turns = rotations[ring] / sectorAngle;
+      final completedTurns = (turns + 1e-9).floor();
+      final incomingFraction = (turns - completedTurns).clamp(0.0, 1.0);
+      final incomingSector =
+          (colors[ring].length - completedTurns - 1) % colors[ring].length;
+      final outgoingSector =
+          (colors[ring].length - completedTurns) % colors[ring].length;
+      final span = geometry.endAngle - geometry.startAngle;
+      final boundaryAngle = geometry.startAngle + span * incomingFraction;
 
-      for (var sector = 0; sector < colors[ring].length; sector++) {
-        final baseStart = -math.pi / 2 + rotations[ring] + sector * sectorAngle;
-        for (var turn = -2; turn <= 2; turn++) {
-          final segmentStart = baseStart + turn * 2 * math.pi;
-          final segmentEnd = segmentStart + sectorAngle;
-          final visibleStart = math.max(segmentStart, geometry.startAngle);
-          final visibleEnd = math.min(segmentEnd, geometry.endAngle);
-          if (visibleEnd <= visibleStart) continue;
-          canvas.drawArc(
-            rect,
-            visibleStart,
-            visibleEnd - visibleStart,
-            false,
-            segmentPaint..color = colors[ring][sector],
-          );
-        }
+      // A complete sector turn replaces the visible color. While dragging,
+      // reveal the next sector from the edge it physically enters through.
+      canvas.drawArc(
+        rect,
+        geometry.startAngle,
+        span,
+        false,
+        segmentPaint..color = colors[ring][outgoingSector],
+      );
+      if (incomingFraction > 0) {
+        canvas.drawArc(
+          rect,
+          geometry.startAngle,
+          span * incomingFraction,
+          false,
+          segmentPaint..color = colors[ring][incomingSector],
+        );
+      }
+
+      if (incomingFraction > 0.005 && incomingFraction < 0.995) {
+        final inner = trackRadius - step / 2;
+        final outer = trackRadius + step / 2;
+        final direction = Offset(
+          math.cos(boundaryAngle),
+          math.sin(boundaryAngle),
+        );
+        canvas.drawLine(
+          geometry.center + direction * inner,
+          geometry.center + direction * outer,
+          Paint()
+            ..isAntiAlias = true
+            ..color = const Color(0xBBFFFFFF)
+            ..strokeWidth = 1.5,
+        );
       }
 
       final capRadius = step / 2;
-      for (final angle in [geometry.startAngle, geometry.endAngle]) {
-        final relative =
-            (angle - (-math.pi / 2 + rotations[ring])) % (2 * math.pi);
-        final positive = relative < 0 ? relative + 2 * math.pi : relative;
-        final sector = (positive / sectorAngle).floor() % colors[ring].length;
+      for (final (angle, sector) in [
+        (
+          geometry.startAngle,
+          incomingFraction > 0 ? incomingSector : outgoingSector,
+        ),
+        (geometry.endAngle, outgoingSector),
+      ]) {
         final capCenter =
             geometry.center +
             Offset(

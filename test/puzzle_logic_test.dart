@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hue_wheel/features/puzzle/domain/puzzle_models.dart';
 import 'package:hue_wheel/features/puzzle/logic/level_generator.dart';
@@ -84,6 +85,31 @@ void main() {
     expect(generator.generate(80).ringCount, 8);
   });
 
+  test('movable rings receive different hues from the same color family', () {
+    final level = const LevelGenerator().generate(5);
+    final colors = const HslColorPaletteGenerator().generate(level);
+    final hues = [
+      for (final ring in colors) HSLColor.fromColor(ring.first).hue,
+    ];
+
+    // RGB conversion quantizes the hue slightly.
+    expect(hues.last, closeTo(level.palette.baseHue, 0.5));
+    expect(
+      hues.take(level.movableRingCount).toSet().length,
+      level.movableRingCount,
+    );
+    expect(
+      hues
+          .take(level.movableRingCount)
+          .every(
+            (hue) =>
+                _circularHueDistance(hue, level.palette.baseHue) <=
+                level.palette.hueRange / 2 + 1,
+          ),
+      true,
+    );
+  });
+
   test('validator rejects solved, uniform, and indistinct levels', () {
     final level = const LevelGenerator().generate(31);
     const validator = LevelValidator();
@@ -125,4 +151,9 @@ void main() {
       false,
     );
   });
+}
+
+double _circularHueDistance(double a, double b) {
+  final difference = (a - b).abs() % 360;
+  return difference > 180 ? 360 - difference : difference;
 }

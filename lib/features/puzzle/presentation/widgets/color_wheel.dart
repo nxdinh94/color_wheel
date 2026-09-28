@@ -110,7 +110,7 @@ class ColorWheelState extends State<ColorWheel>
       widget.level.ringCount,
       centerFraction: WheelPainter.arcInnerFraction,
     );
-    if (ring == null || ring == 0 || ring == widget.level.ringCount - 1) {
+    if (ring == null || !widget.level.isRingMovable(ring)) {
       return;
     }
     _pointer = event.pointer;
