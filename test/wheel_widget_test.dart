@@ -28,7 +28,7 @@ void main() {
     const colors = [
       [Colors.red, Colors.blue, Colors.green],
     ];
-    final geometry = WheelPainter.arcGeometry(size);
+    final geometry = WheelPainter.circleGeometry(size);
     final trackRadius = (geometry.innerRadius + geometry.outerRadius) / 2;
     final span = geometry.endAngle - geometry.startAngle;
 
@@ -38,7 +38,7 @@ void main() {
         colors: colors,
         rotations: [rotation],
         repaint: const AlwaysStoppedAnimation<double>(0),
-        arcDisplay: true,
+        ringDisplay: true,
       ).paint(Canvas(recorder), size);
       final image = await recorder.endRecording().toImage(300, 300);
       final angle = geometry.startAngle + span * position;
@@ -57,6 +57,10 @@ void main() {
     }
 
     await tester.runAsync(() async {
+      // Every quadrant is painted, including the lower half of the wheel.
+      for (final position in [0.125, 0.375, 0.625, 0.875]) {
+        expect((await colorAt(0, position)).toARGB32(), Colors.red.toARGB32());
+      }
       final halfTurn = math.pi / 3;
       expect(
         (await colorAt(halfTurn, 0.25)).toARGB32(),
@@ -121,6 +125,64 @@ void main() {
       expect(moves.single.$2, normalizeSector(level.shuffleOffsets[0] + 2, 6));
     },
   );
+
+  testWidgets('full circle accepts lower drags and crosses the angle seam', (
+    tester,
+  ) async {
+    final level = const LevelGenerator().generate(1);
+    final key = GlobalKey<ColorWheelState>();
+    final moves = <(int, int)>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Center(
+          child: SizedBox.square(
+            dimension: 300,
+            child: ColorWheel(
+              key: key,
+              level: level,
+              colors: const HslColorPaletteGenerator().generate(level),
+              onMove: (ring, offset) => moves.add((ring, offset)),
+            ),
+          ),
+        ),
+      ),
+    );
+    final center = tester.getCenter(find.byType(ColorWheel));
+    Offset point(double angle, double radius) =>
+        center + Offset(math.cos(angle), math.sin(angle)) * radius;
+    final before = key.currentState!.rotations;
+    final lowerDrag = await tester.startGesture(point(math.pi / 2, 50));
+    expect(key.currentState!.selectedRing, 0);
+    await lowerDrag.moveTo(point(math.pi, 50));
+    await tester.pump();
+    expect(
+      shortestAngularDelta(key.currentState!.rotations[0], before[0]),
+      closeTo(math.pi / 2, 0.001),
+    );
+    await lowerDrag.cancel();
+    await tester.pumpAndSettle();
+
+    final seamDrag = await tester.startGesture(point(math.pi - 0.1, 50));
+    await seamDrag.moveTo(point(-math.pi + 0.1, 50));
+    await tester.pump();
+    expect(
+      shortestAngularDelta(key.currentState!.rotations[0], before[0]),
+      closeTo(0.2, 0.001),
+    );
+    expect(key.currentState!.rotations.last, before.last);
+    await seamDrag.up();
+    await tester.pumpAndSettle();
+    expect(moves, isEmpty);
+    expect(key.currentState!.rotations[0], closeTo(before[0], 0.001));
+
+    final referenceDrag = await tester.startGesture(point(math.pi / 2, 135));
+    expect(key.currentState!.selectedRing, isNull);
+    await referenceDrag.moveTo(point(math.pi, 135));
+    await referenceDrag.up();
+    await tester.pumpAndSettle();
+    expect(key.currentState!.rotations.last, before.last);
+    expect(moves, isEmpty);
+  });
 
   testWidgets('cancel restores rotation and does not count a move', (
     tester,
