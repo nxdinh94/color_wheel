@@ -9,35 +9,34 @@ class WheelPainter extends CustomPainter {
     required Listenable repaint,
     this.separatorWidth = 0.65,
     this.showBoundaries = false,
-    this.arcDisplay = false,
+    this.ringDisplay = false,
   }) : super(repaint: repaint);
 
   final List<List<Color>> colors;
   final List<double> rotations;
   final double separatorWidth;
   final bool showBoundaries;
-  final bool arcDisplay;
+  final bool ringDisplay;
   static const double centerFraction = 0.16;
-  static const double arcInnerFraction = 0.18;
-  static const double arcHalfSpan = math.pi * 0.285;
+  static const double ringInnerFraction = 0.18;
   static const double ringGap = 0.1;
 
-  static WheelGeometry arcGeometry(Size size) {
-    final outerRadius = size.width * 0.63;
-    final center = Offset(size.width / 2, size.height - size.width * 0.125);
+  static WheelGeometry circleGeometry(Size size) {
+    final outerRadius = size.shortestSide / 2 - 2;
+    final center = Offset(size.width / 2, size.height / 2);
     return WheelGeometry(
       center: center,
       outerRadius: outerRadius,
-      innerRadius: outerRadius * arcInnerFraction,
-      startAngle: -math.pi / 2 - arcHalfSpan,
-      endAngle: -math.pi / 2 + arcHalfSpan,
+      innerRadius: outerRadius * ringInnerFraction,
+      startAngle: -math.pi / 2,
+      endAngle: 3 * math.pi / 2,
     );
   }
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (arcDisplay) {
-      _paintArcs(canvas, size);
+    if (ringDisplay) {
+      _paintRings(canvas, size);
       return;
     }
 
@@ -91,8 +90,8 @@ class WheelPainter extends CustomPainter {
     );
   }
 
-  void _paintArcs(Canvas canvas, Size size) {
-    final geometry = arcGeometry(size);
+  void _paintRings(Canvas canvas, Size size) {
+    final geometry = circleGeometry(size);
     final ringCount = colors.length;
     final step =
         (geometry.outerRadius -
@@ -158,29 +157,6 @@ class WheelPainter extends CustomPainter {
             ..strokeWidth = 1.5,
         );
       }
-
-      final capRadius = step / 2;
-      for (final (angle, sector) in [
-        (
-          geometry.startAngle,
-          incomingFraction > 0 ? incomingSector : outgoingSector,
-        ),
-        (geometry.endAngle, outgoingSector),
-      ]) {
-        final capCenter =
-            geometry.center +
-            Offset(
-              math.cos(angle) * trackRadius,
-              math.sin(angle) * trackRadius,
-            );
-        canvas.drawCircle(
-          capCenter,
-          capRadius,
-          Paint()
-            ..isAntiAlias = true
-            ..color = colors[ring][sector],
-        );
-      }
     }
 
     if (showBoundaries) {
@@ -190,7 +166,8 @@ class WheelPainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = separatorWidth;
       for (var layer = 1; layer < ringCount; layer++) {
-        final radius = geometry.innerRadius + layer * step;
+        final radius =
+            geometry.innerRadius + layer * (step + ringGap) - ringGap / 2;
         canvas.drawArc(
           Rect.fromCircle(center: geometry.center, radius: radius),
           geometry.startAngle,
@@ -217,7 +194,7 @@ class WheelPainter extends CustomPainter {
       oldDelegate.rotations != rotations ||
       oldDelegate.separatorWidth != separatorWidth ||
       oldDelegate.showBoundaries != showBoundaries ||
-      oldDelegate.arcDisplay != arcDisplay;
+      oldDelegate.ringDisplay != ringDisplay;
 }
 
 class WheelGeometry {

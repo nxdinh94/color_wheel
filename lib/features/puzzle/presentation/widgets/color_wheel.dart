@@ -89,7 +89,7 @@ class ColorWheelState extends State<ColorWheel>
   }
 
   double _angle(Offset point, Size size) {
-    final geometry = WheelPainter.arcGeometry(size);
+    final geometry = WheelPainter.circleGeometry(size);
     return math.atan2(
       point.dy - geometry.center.dy,
       point.dx - geometry.center.dx,
@@ -98,17 +98,16 @@ class ColorWheelState extends State<ColorWheel>
 
   void _onDown(PointerDownEvent event, Size size) {
     if (!widget.enabled || _pointer != null || _snappingRing != null) return;
-    final geometry = WheelPainter.arcGeometry(size);
+    final geometry = WheelPainter.circleGeometry(size);
     final center = geometry.center;
     final delta = event.localPosition - center;
     final radius = delta.distance;
     final angle = _angle(event.localPosition, size);
-    if (angle < geometry.startAngle || angle > geometry.endAngle) return;
     final ring = ringAtRadius(
       radius,
       geometry.outerRadius,
       widget.level.ringCount,
-      centerFraction: WheelPainter.arcInnerFraction,
+      centerFraction: WheelPainter.ringInnerFraction,
     );
     if (ring == null || !widget.level.isRingMovable(ring)) {
       return;
@@ -189,7 +188,7 @@ class ColorWheelState extends State<ColorWheel>
                       rotations: _rotations,
                       repaint: _paintVersion,
                       showBoundaries: widget.showDebug,
-                      arcDisplay: true,
+                      ringDisplay: true,
                     ),
                   ),
                 ),
