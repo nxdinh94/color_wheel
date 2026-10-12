@@ -21,121 +21,130 @@ class HomeScreen extends ConsumerWidget {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 28),
-          child: Column(
-            children: [
-              Align(
-                alignment: Alignment.centerRight,
-                child: IconButton(
-                  tooltip: 'Settings',
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => const SettingsScreen(),
-                    ),
-                  ),
-                  icon: const Icon(Icons.tune_rounded),
-                ),
-              ),
-              const Spacer(),
-              Text(
-                'HUE WHEEL',
-                style: Theme.of(context).textTheme.headlineLarge,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 10),
-              Text(
-                'A quiet puzzle of color and alignment',
-                style: Theme.of(context).textTheme.bodyMedium,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 42),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final size = constraints.maxWidth.clamp(0.0, 320.0);
-                  return SizedBox(
-                    width: size,
-                    height: size,
-                    child: CustomPaint(
-                      painter: WheelPainter(
-                        colors: colors,
-                        rotations: List.filled(preview.ringCount, 0),
-                        repaint: const AlwaysStoppedAnimation(0),
-                        ringDisplay: true,
-                      ),
-                    ),
-                  );
-                },
-              ),
-              const Spacer(),
-              InputDecorator(
-                decoration: InputDecoration(
-                  labelText: 'SELECT LEVEL',
-                  labelStyle: const TextStyle(
-                    fontSize: 11,
-                    letterSpacing: 1.4,
-                    color: Color(0xFF817B72),
-                    fontWeight: FontWeight.w600,
-                  ),
-                  filled: true,
-                  fillColor: const Color(0xFFF1EEE8),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<int>(
-                    isExpanded: true,
-                    value: level,
-                    items: [
-                      for (var choice = 1; choice <= 80; choice++)
-                        DropdownMenuItem(
-                          value: choice,
-                          child: Text(
-                            'Level $choice · ${_ringCountFor(choice)} rings',
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final size = constraints.maxWidth.clamp(0.0, 320.0);
+              return SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: IntrinsicHeight(
+                    child: Column(
+                      children: [
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: IconButton(
+                            tooltip: 'Settings',
+                            onPressed: () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => const SettingsScreen(),
+                              ),
+                            ),
+                            icon: const Icon(Icons.tune_rounded),
                           ),
                         ),
-                      if (level > 80)
-                        DropdownMenuItem(
-                          value: level,
-                          child: Text(
-                            'Level $level · ${_ringCountFor(level)} rings',
+                        const Spacer(),
+                        Text(
+                          'HUE WHEEL',
+                          style: Theme.of(context).textTheme.headlineLarge,
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'A quiet puzzle of color and alignment',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 42),
+                        SizedBox.square(
+                          dimension: size,
+                          child: CustomPaint(
+                            painter: WheelPainter(
+                              colors: colors,
+                              rotations: List.filled(preview.ringCount, 0),
+                              repaint: const AlwaysStoppedAnimation(0),
+                              ringDisplay: true,
+                            ),
                           ),
                         ),
-                    ],
-                    onChanged: (value) {
-                      if (value != null) {
-                        progressController.selectLevel(value);
-                      }
-                    },
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: FilledButton(
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => const PuzzleScreen(),
+                        const Spacer(),
+                        InputDecorator(
+                          decoration: InputDecoration(
+                            labelText: 'SELECT LEVEL',
+                            labelStyle: const TextStyle(
+                              fontSize: 11,
+                              letterSpacing: 1.4,
+                              color: Color(0xFF817B72),
+                              fontWeight: FontWeight.w600,
+                            ),
+                            filled: true,
+                            fillColor: const Color(0xFFF1EEE8),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<int>(
+                              isExpanded: true,
+                              value: level,
+                              items: [
+                                for (var choice = 1; choice <= 80; choice++)
+                                  DropdownMenuItem(
+                                    value: choice,
+                                    child: Text(
+                                      'Level $choice · ${_ringCountFor(choice)} rings',
+                                    ),
+                                  ),
+                                if (level > 80)
+                                  DropdownMenuItem(
+                                    value: level,
+                                    child: Text(
+                                      'Level $level · ${_ringCountFor(level)} rings',
+                                    ),
+                                  ),
+                              ],
+                              onChanged: (value) {
+                                if (value != null) {
+                                  progressController.selectLevel(value);
+                                }
+                              },
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 56,
+                          child: FilledButton(
+                            onPressed: () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => const PuzzleScreen(),
+                              ),
+                            ),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: const Color(0xFF2F3030),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                            ),
+                            child: const Text(
+                              'Continue',
+                              style: TextStyle(fontSize: 16),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+                      ],
                     ),
                   ),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF2F3030),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                  ),
-                  child: const Text('Continue', style: TextStyle(fontSize: 16)),
                 ),
-              ),
-              const SizedBox(height: 32),
-            ],
+              );
+            },
           ),
         ),
       ),

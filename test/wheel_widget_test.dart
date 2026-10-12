@@ -21,6 +21,50 @@ class _MemoryProgressRepository implements ProgressRepository {
 }
 
 void main() {
+  for (final size in [
+    const Size(320, 568),
+    const Size(568, 320),
+    const Size(400, 850),
+  ]) {
+    testWidgets('home controls remain reachable at $size', (tester) async {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1;
+      tester.view.padding = const FakeViewPadding(top: 24, bottom: 16);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPadding);
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            progressRepositoryProvider.overrideWithValue(
+              _MemoryProgressRepository(),
+            ),
+          ],
+          child: const HueWheelApp(),
+        ),
+      );
+      expect(tester.takeException(), isNull);
+      final preview = find.byWidgetPredicate(
+        (widget) => widget is CustomPaint && widget.painter is WheelPainter,
+      );
+      final previewSize = tester.getSize(preview);
+      expect(previewSize.width, previewSize.height);
+      await tester.ensureVisible(find.byType(DropdownButton<int>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(DropdownButton<int>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Level 3 · 5 rings').last);
+      await tester.pumpAndSettle();
+      expect(find.text('Level 3 · 5 rings'), findsOneWidget);
+      await tester.ensureVisible(find.text('Continue'));
+      await tester.pumpAndSettle();
+      final buttonRect = tester.getRect(find.byType(FilledButton));
+      expect(buttonRect.top, greaterThanOrEqualTo(24));
+      expect(buttonRect.bottom, lessThanOrEqualTo(size.height - 16));
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('incoming ring color sweeps in from the drag edge', (
     tester,
   ) async {
